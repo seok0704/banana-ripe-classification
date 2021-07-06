@@ -1,32 +1,26 @@
 import torch.nn as nn
+import torchvision.models as models
+from collections import OrderedDict
+from torchvision import datasets
 
-class LSTMClassifier(nn.Module):
-    """
-    This is the simple RNN model we will be using to perform Sentiment Analysis.
-    """
+def constructed_model(model_transfer, hidden_layer_size):
+    
+    #Remove the last layer from the model
+    classifier_name, old_classifier = model._modules.popitem()
+    
+    #Freeze the parameters to prevent back-propagation
+    for param in model_transfer.parameters():
+        param.requires_grad = False
+    
+    classifier_input_size = old_classifier.in_features
 
-    def __init__(self, embedding_dim, hidden_dim, vocab_size):
-        """
-        Initialize the model by settingg up the various layers.
-        """
-        super(LSTMClassifier, self).__init__()
-
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.dense = nn.Linear(in_features=hidden_dim, out_features=1)
-        self.sig = nn.Sigmoid()
-        
-        self.word_dict = None
-
-    def forward(self, x):
-        """
-        Perform a forward pass of our model on some input.
-        """
-        x = x.t()
-        lengths = x[0,:]
-        reviews = x[1:,:]
-        embeds = self.embedding(reviews)
-        lstm_out, _ = self.lstm(embeds)
-        out = self.dense(lstm_out)
-        out = out[lengths - 1, range(len(lengths))]
-        return self.sig(out.squeeze())
+    classifier = nn.Sequential(OrderedDict([
+                               ('fc1', nn.Linear(classifier_input_size, hidden_layer_size)),
+                               ('activation', nn.Relu()),
+                               ('dropout', nn.Dropout(p=0.3)),
+                               ('fc2', nn.Linear(hidden_layer_size, 3)),
+                               ('output', nn.LogSoftmax(dim=1))
+                               ]))
+    model.add_module(classifier_name, classifier)
+    
+    return model
