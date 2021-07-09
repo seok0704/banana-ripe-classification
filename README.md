@@ -12,7 +12,7 @@ In this project, we propose to develop a classification model that predicts the 
 	```	
 	git clone https://github.com/seok0704/banana-ripe-classification.git
 	```
-2. Download the [Fruit 360 dataset](https://www.kaggle.com/moltean/fruits/download). Unzip the folder and place the 'Test' folder in the directory, 'data/'.
+2. Download the [Fruit 360 dataset](https://www.kaggle.com/moltean/fruits/download). Unzip the folder and place only the 'Test' folder in the directory, 'data/'.
 
 3. Make sure you have already installed the necessary Python packages according to the README in the program repository.
 	  ```	
