@@ -1,0 +1,7 @@
+sagemaker
+pandas
+numpy
+pytorch
+matplotlib
+plotly
+scikit-learn
