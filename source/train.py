@@ -5,6 +5,10 @@ import pandas as pd
 import torch
 import torch.optim as optim
 import torch.utils.data
+import numpy as np
+
+from torchvision import datasets
+import torchvision.models as models
 
 # imports the model in model.py by name
 from model import constructed_model
@@ -24,7 +28,7 @@ def model_fn(model_dir):
 
     # Determine the device and construct the model.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = constructed_model(model_info['model_transfer'], model_info['hidden_dim'])
+    model = constructed_model(model_info['model_transfer'], model_info['hidden_layer'])
 
     # Load the stored model parameters.
     model_path = os.path.join(model_dir, 'model.pth')
@@ -44,7 +48,7 @@ def _get_data_loader(batch_size, data_dir,split):
     
     data_train = datasets.ImageFolder(os.path.join(data_dir, split), transform)
     
-    train_loader = torch.utils.data.DataLoader(train_set, shuffle=True, batch_size, num_workers=0)
+    train_loader = torch.utils.data.DataLoader(data_train, shuffle=True, batch_size=batch_size, num_workers=0)
 
     return train_loader
 
@@ -65,7 +69,7 @@ def train(model, train_loader, val_loader, epochs, criterion, optimizer, device,
     # initialize tracker for minimum validation loss
     valid_loss_min = np.Inf 
     
-    for epoch in range(1, n_epochs+1):
+    for epoch in range(1, epochs+1):
         # initialize variables to monitor training and validation loss
         train_loss = 0.0
         valid_loss = 0.0
@@ -115,9 +119,9 @@ def train(model, train_loader, val_loader, epochs, criterion, optimizer, device,
             valid_loss))
             torch.save(model.state_dict(), model_path)
             valid_loss_min = valid_loss
-            
-        return model
-     
+        
+        print("Final Val Loss: {:.6f}".format(valid_loss_min))
+        
 ## TODO: Complete the main code
 if __name__ == '__main__':
     
@@ -129,37 +133,33 @@ if __name__ == '__main__':
 
     # SageMaker parameters, like the directories for training data and saving models; set automatically
     # Do not need to change
-    parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
+    parser.add_argument('--hosts', type=list, default=json.loads(os.environ['SM_HOSTS']))
+    parser.add_argument('--current-host', type=str, default=os.environ['SM_CURRENT_HOST'])
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--data-dir', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
+    parser.add_argument('--data-dir', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
+    parser.add_argument('--num-gpus', type=int, default=os.environ['SM_NUM_GPUS'])
     
     # Training Parameters, given
-    parser.add_argument('--batch-size', type=int, default=10, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=8, metavar='N',
                         help='input batch size for training (default: 10)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--learning-rate', type=float, default=0.01, metavar='S',
+    parser.add_argument('--epochs', type=int, default=20, metavar='N',
+                        help='number of epochs to train (default: 20)')
+    parser.add_argument('--learning-rate', type=float, default=0.01, metavar='N',
                         help='learning rate (default: 0.01)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
     
-    ## TODO: Add args for the three model parameters: input_features, hidden_dim, output_dim
     # Model Parameters
-    parser.add_argument('--model-transfer', type=str, default='VGG16', metavar='S',
-                        help='model architecture (default: VGG16)')
-    parser.add_argument('--hidden-layer-size', type=int, default=1, metavar='S',
+    parser.add_argument('--model_transfer', type=str, default='ResNet101', metavar='N',
+                        help='model architecture (default: ResNet101)')
+    parser.add_argument('--hidden_layer', type=int, default=1, metavar='N',
                     help='random seed (default: 1)')
-
-    model_path = os.path.join(args.model_dir, 'model.pth')
-
-    
-    transfer_learning_dict = {'VGG16': models.vgg16(pretrained=True), 'ResNet101': models.resnet101(pretrained=True)}
-    
-    transfer_learning = transfer_learning_dict[args.model_transfer]
     
     # args holds all passed-in arguments
     args = parser.parse_args()
 
+    model_path = os.path.join(args.model_dir, 'model.pth')
+        
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device {}.".format(device))
     
@@ -167,20 +167,20 @@ if __name__ == '__main__':
     
     # Load the training and val data.
     train_loader = _get_data_loader(args.batch_size, args.data_dir, 'train',)
-    val_loader = _get_data_loader(args.batch_size, args.data_dir, 'val',)
+    val_loader = _get_data_loader(args.batch_size, args.data_dir, 'validation',)
 
     
     ## TODO:  Build the model by passing in the input params
     # To get params from the parser, call args.argument_name, ex. args.epochs or ards.hidden_dim
     # Don't forget to move your model .to(device) to move to GPU , if appropriate
-    model = constructed_model(transfer_learning, args.hidden_layer_size).to(device)
+    model = constructed_model(args.model_transfer, args.hidden_layer).to(device)
 
     ## TODO: Define an optimizer and loss function for training
-    optimizer = nn.CrossEntropyLoss()
-    criterion = optim.SGD(model.parameters(), lr=args.learning_rate)
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.fc.parameters(), lr=args.learning_rate)
 
     # Trains the model (given line of code, which calls the above training function)
-    model = train(model, train_loader, val_loader, args.epochs, criterion, optimizer, device,model_path)
+    train(model, train_loader, val_loader, args.epochs, criterion, optimizer, device,model_path)
 
     ## TODO: complete in the model_info by adding three argument names, the first is given
     # Keep the keys of this dictionary as they are 
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     with open(model_info_path, 'wb') as f:
         model_info = {
             'model_transfer': args.model_transfer,
-            'hidden_dim': args.hidden_layer_size,
+            'hidden_layer': args.hidden_layer,
             'batch_size': args.batch_size,
             'learning_rate': args.learning_rate,
             'epochs': args.epochs,
