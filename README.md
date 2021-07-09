@@ -3,10 +3,12 @@
 ## Project Overview
 In this project, we propose to develop a classification model that predicts the ripeness of the banana and aim to build a machine learning pipeline using Amazon SageMaker that can be deployed on a mobile app or web application that processes the real-world, user-supplied images. Given an image of the banana, the algorithm will identify the banana's ripeness level. If the image supplied is not a banana, the model will also detect for this and output a message accordingly.
 
-![image](https://user-images.githubusercontent.com/17075250/125018919-fe5efa00-e043-11eb-84e7-cc19cd82e694.png)
-![image](https://user-images.githubusercontent.com/17075250/125018930-01f28100-e044-11eb-93c3-94180da91ab7.png)
-![image](https://user-images.githubusercontent.com/17075250/125018936-0454db00-e044-11eb-8726-15165b41818a.png)
-![image](https://user-images.githubusercontent.com/17075250/125018942-074fcb80-e044-11eb-94df-1bd1ade2de93.png)
+<p align="center">
+  <img width="460" height="300" src="https://user-images.githubusercontent.com/17075250/125018919-fe5efa00-e043-11eb-84e7-cc19cd82e694.png">
+  <img width="460" height="300" src="https://user-images.githubusercontent.com/17075250/125018930-01f28100-e044-11eb-93c3-94180da91ab7.png">
+  <img width="460" height="300" src="https://user-images.githubusercontent.com/17075250/125018936-0454db00-e044-11eb-8726-15165b41818a.png">
+  <img width="460" height="300" src="https://user-images.githubusercontent.com/17075250/125018942-074fcb80-e044-11eb-94df-1bd1ade2de93.png">
+</p>
 
 
 
